@@ -53,6 +53,7 @@ export default function Dashboard() {
   const [isAddingSubject, setIsAddingSubject] = useState(false)
   const [isAddingYear, setIsAddingYear] = useState(false)
   const [isCreatingCurriculum, setIsCreatingCurriculum] = useState(false)
+  const [isEditingCurriculum, setIsEditingCurriculum] = useState(false)
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null)
 
   const [newSubject, setNewSubject] = useState({
@@ -69,6 +70,11 @@ export default function Dashboard() {
   })
 
   const [newCurriculum, setNewCurriculum] = useState({
+    name: "",
+    description: "",
+  })
+
+  const [editCurriculumForm, setEditCurriculumForm] = useState({
     name: "",
     description: "",
   })
@@ -151,6 +157,37 @@ export default function Dashboard() {
       setIsCreatingCurriculum(false)
     } catch (error) {
       console.error("Error creating curriculum:", error)
+    }
+  }
+
+  const updateCurriculum = async () => {
+    if (!selectedCurriculum || !editCurriculumForm.name.trim()) return
+
+    try {
+      const { error } = await supabase
+        .from("curriculums")
+        .update({
+          name: editCurriculumForm.name,
+          description: editCurriculumForm.description,
+        })
+        .eq("id", selectedCurriculum.id)
+
+      if (error) throw error
+
+      await fetchCurriculums()
+      setIsEditingCurriculum(false)
+    } catch (error) {
+      console.error("Error updating curriculum:", error)
+    }
+  }
+
+  const openEditCurriculum = () => {
+    if (selectedCurriculum) {
+      setEditCurriculumForm({
+        name: selectedCurriculum.name,
+        description: selectedCurriculum.description || "",
+      })
+      setIsEditingCurriculum(true)
     }
   }
 
@@ -367,7 +404,17 @@ export default function Dashboard() {
           <div className="flex items-center gap-3">
             <GraduationCap className="h-8 w-8 text-indigo-600" />
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">{selectedCurriculum?.name || "Malla Curricular"}</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-3xl font-bold text-gray-900">{selectedCurriculum?.name || "Malla Curricular"}</h1>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={openEditCurriculum}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <Edit3 className="h-4 w-4" />
+                </Button>
+              </div>
               {selectedCurriculum?.description && <p className="text-gray-600">{selectedCurriculum.description}</p>}
             </div>
           </div>
@@ -628,6 +675,47 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
+        {/* Dialog para editar currículo */}
+        <Dialog open={isEditingCurriculum} onOpenChange={setIsEditingCurriculum}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Editar Currículo</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="edit-curriculum-name">Nombre del Currículo</Label>
+                <Input
+                  id="edit-curriculum-name"
+                  value={editCurriculumForm.name}
+                  onChange={(e) => setEditCurriculumForm({ ...editCurriculumForm, name: e.target.value })}
+                  placeholder="Ej: Ingeniería en Sistemas, Medicina, Derecho..."
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-curriculum-description">Descripción</Label>
+                <Input
+                  id="edit-curriculum-description"
+                  value={editCurriculumForm.description}
+                  onChange={(e) => setEditCurriculumForm({ ...editCurriculumForm, description: e.target.value })}
+                  placeholder="Descripción del currículo"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={updateCurriculum} className="flex-1">
+                  Guardar Cambios
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsEditingCurriculum(false)}
+                  className="flex-1"
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Dialog para editar materia */}
         <Dialog open={!!editingSubject} onOpenChange={() => setEditingSubject(null)}>
