@@ -56,6 +56,7 @@ export default function Dashboard() {
   const [isEditingCurriculum, setIsEditingCurriculum] = useState(false)
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null)
   const [isCreatingExample, setIsCreatingExample] = useState(false)
+  const [isCreatingCurriculumLoading, setIsCreatingCurriculumLoading] = useState(false)
 
   const [newSubject, setNewSubject] = useState({
     name: "",
@@ -92,6 +93,10 @@ export default function Dashboard() {
   }, [user, authLoading, router])
 
   const fetchCurriculums = async () => {
+    if (!user) return
+    
+    console.log("Fetching curriculums for user:", user.id)
+    
     try {
       const { data: curriculumsData, error } = await supabase
         .from("Curriculum")
@@ -112,10 +117,17 @@ export default function Dashboard() {
             )
           )
         `)
-        .eq("userId", user?.id)
+        .eq("userId", user.id)
         .order("createdAt", { ascending: true })
 
-      if (error) throw error
+      if (error) {
+        console.error("Error fetching curriculums:", error)
+        throw error
+      }
+
+      console.log("Raw curriculums data:", curriculumsData)
+
+      console.log("Raw curriculums data:", curriculumsData)
 
       // Ordenar años y materias
       const processedCurriculums =
@@ -129,9 +141,15 @@ export default function Dashboard() {
             })),
         })) || []
 
+      console.log("Processed curriculums:", processedCurriculums)
       setCurriculums(processedCurriculums)
+      
       if (processedCurriculums.length > 0) {
+        console.log("Setting selected curriculum to:", processedCurriculums[0])
         setSelectedCurriculum(processedCurriculums[0])
+      } else {
+        console.log("No curriculums found, setting selected to null")
+        setSelectedCurriculum(null)
       }
     } catch (error) {
       console.error("Error fetching curriculums:", error)
@@ -141,24 +159,38 @@ export default function Dashboard() {
   }
 
   const createCurriculum = async () => {
-    if (!user || !newCurriculum.name.trim()) return
+    if (!user || !newCurriculum.name.trim()) {
+      console.log("Missing user or curriculum name")
+      return
+    }
+
+    setIsCreatingCurriculumLoading(true)
+    console.log("Creating curriculum:", { name: newCurriculum.name, description: newCurriculum.description, userId: user.id })
 
     try {
-      const { error } = await supabase.from("Curriculum").insert([
+      const { data, error } = await supabase.from("Curriculum").insert([
         {
           name: newCurriculum.name,
           description: newCurriculum.description,
           userId: user.id,
         },
       ])
+      .select()
 
-      if (error) throw error
+      if (error) {
+        console.error("Supabase error:", error)
+        throw error
+      }
 
+      console.log("Curriculum created successfully:", data)
+      
       await fetchCurriculums()
       setNewCurriculum({ name: "", description: "" })
       setIsCreatingCurriculum(false)
     } catch (error) {
       console.error("Error creating curriculum:", error)
+    } finally {
+      setIsCreatingCurriculumLoading(false)
     }
   }
 
@@ -459,8 +491,12 @@ export default function Dashboard() {
                         placeholder="Universidad, modalidad, año de plan de estudios, etc."
                       />
                     </div>
-                    <Button onClick={createCurriculum} className="w-full">
-                      Crear Currículo
+                    <Button 
+                      onClick={createCurriculum} 
+                      className="w-full"
+                      disabled={isCreatingCurriculumLoading}
+                    >
+                      {isCreatingCurriculumLoading ? "Creando..." : "Crear Currículo"}
                     </Button>
                   </div>
                 </DialogContent>
