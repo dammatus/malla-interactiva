@@ -141,6 +141,7 @@ export default function Dashboard() {
 
       if (error) {
         console.error("❌ Error fetching curriculums:", error)
+        console.error("Error details:", error.message, error.details, error.hint)
         throw error
       }
 
@@ -196,8 +197,8 @@ export default function Dashboard() {
     })
 
     try {
-      // Generar un ID único manualmente como workaround
-      const uniqueId = `curriculum_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      // Generar un ID único simple y compatible
+      const uniqueId = `curriculum-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
       const now = new Date().toISOString()
       
       const curriculumData = {
@@ -219,6 +220,7 @@ export default function Dashboard() {
 
       if (error) {
         console.error("❌ Supabase error:", error)
+        console.error("Error details:", error.message, error.details, error.hint)
         throw error
       }
 
@@ -350,7 +352,7 @@ export default function Dashboard() {
     if (!selectedCurriculum || !newYear.name.trim() || !newYear.number) return
 
     try {
-      const uniqueId = `year_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      const uniqueId = `year-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
       const now = new Date().toISOString()
       
       const { error } = await supabase.from("Year").insert([
@@ -378,7 +380,7 @@ export default function Dashboard() {
     if (!newSubject.name.trim() || !newSubject.yearId) return
 
     try {
-      const subjectId = `subject_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      const subjectId = `subject-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
       const now = new Date().toISOString()
       
       // Insertar la materia
@@ -402,8 +404,8 @@ export default function Dashboard() {
 
       // Insertar prerequisitos si los hay
       if (newSubject.prerequisites.length > 0) {
-        const prerequisitesData = newSubject.prerequisites.map((prereqId) => ({
-          id: `prereq_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${prereqId}`,
+        const prerequisitesData = newSubject.prerequisites.map((prereqId, index) => ({
+          id: `prereq-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
           subjectId: subjectData.id,
           prerequisiteId: prereqId,
         }))

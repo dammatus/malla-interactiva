@@ -1,16 +1,15 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { supabase } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { GraduationCap, Mail, Lock, User, Chrome } from "lucide-react"
+import { GraduationCap, Mail, Lock, User } from "lucide-react"
 import Link from "next/link"
-import { signIn } from "next-auth/react"
 
 export default function SignUp() {
   const [formData, setFormData] = useState({
@@ -20,39 +19,58 @@ export default function SignUp() {
     confirmPassword: "",
   })
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
+  const [success, setSuccess] = useState("")
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError("")
+    setSuccess("")
 
     if (formData.password !== formData.confirmPassword) {
-      alert("Las contraseñas no coinciden")
+      setError("Las contraseñas no coinciden")
+      return
+    }
+
+    if (formData.password.length < 6) {
+      setError("La contraseña debe tener al menos 6 caracteres")
       return
     }
 
     setIsLoading(true)
 
     try {
-      // For demo purposes, we'll create a user directly
-      // In production, you'd have a proper registration API
-      const result = await signIn("credentials", {
+      const { data, error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
-        redirect: false,
+        options: {
+          data: {
+            name: formData.name,
+          },
+        },
       })
 
-      if (result?.ok) {
-        router.push("/")
+      if (error) {
+        setError(error.message)
+        return
       }
-    } catch (error) {
-      console.error("Sign up error:", error)
+
+      if (data.user) {
+        setSuccess("¡Cuenta creada exitosamente! Revisa tu email para confirmar tu cuenta.")
+        setTimeout(() => {
+          router.push("/auth/signin")
+        }, 2000)
+      }
+    } catch (err) {
+      setError("Error al crear la cuenta")
     } finally {
       setIsLoading(false)
     }
   }
 
   const handleGoogleSignIn = () => {
-    signIn("google", { callbackUrl: "/" })
+    // Google sign-in not implemented yet
   }
 
   return (
@@ -67,6 +85,16 @@ export default function SignUp() {
         </CardHeader>
         <CardContent className="space-y-4">
           <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded">
+                {error}
+              </div>
+            )}
+            {success && (
+              <div className="p-3 text-sm text-green-600 bg-green-50 border border-green-200 rounded">
+                {success}
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="name">Nombre Completo</Label>
               <div className="relative">
@@ -131,20 +159,6 @@ export default function SignUp() {
               {isLoading ? "Creando cuenta..." : "Crear Cuenta"}
             </Button>
           </form>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-2 text-muted-foreground">O continúa con</span>
-            </div>
-          </div>
-
-          <Button variant="outline" onClick={handleGoogleSignIn} className="w-full bg-transparent">
-            <Chrome className="mr-2 h-4 w-4" />
-            Google
-          </Button>
 
           <div className="text-center text-sm">
             ¿Ya tienes cuenta?{" "}
