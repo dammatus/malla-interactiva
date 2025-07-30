@@ -30,7 +30,7 @@ export default function SignIn() {
       })
 
       if (result?.ok) {
-        router.push("/dashboard")
+        router.push("/")
       } else {
         console.error("Sign in failed")
       }
@@ -42,7 +42,7 @@ export default function SignIn() {
   }
 
   const handleGoogleSignIn = () => {
-    signIn("google", { callbackUrl: "/dashboard" })
+    signIn("google", { callbackUrl: "/" })
   }
 
   return (

@@ -42,7 +42,7 @@ export default function SignUp() {
       })
 
       if (result?.ok) {
-        router.push("/dashboard")
+        router.push("/")
       }
     } catch (error) {
       console.error("Sign up error:", error)
@@ -52,7 +52,7 @@ export default function SignUp() {
   }
 
   const handleGoogleSignIn = () => {
-    signIn("google", { callbackUrl: "/dashboard" })
+    signIn("google", { callbackUrl: "/" })
   }
 
   return (

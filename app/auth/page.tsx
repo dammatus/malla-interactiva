@@ -38,7 +38,7 @@ export default function Auth() {
           password,
         })
         if (error) throw error
-        router.push("/dashboard")
+        router.push("/")
       }
     } catch (error: any) {
       setMessage(error.message)
@@ -52,7 +52,7 @@ export default function Auth() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
+          redirectTo: `${window.location.origin}/`,
         },
       })
       if (error) throw error
