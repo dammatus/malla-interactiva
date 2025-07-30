@@ -82,30 +82,49 @@ export default function Dashboard() {
   })
 
   useEffect(() => {
-    if (authLoading) return
+    console.log("🔄 useEffect triggered", { authLoading, user: !!user })
+    
+    if (authLoading) {
+      console.log("⏳ Still loading auth...")
+      return
+    }
 
     if (!user) {
+      console.log("🔒 No user found, redirecting to auth")
       router.push("/auth")
       return
     }
 
+    console.log("👤 User found, fetching curriculums")
     fetchCurriculums()
   }, [user, authLoading, router])
 
   const fetchCurriculums = async () => {
-    if (!user) return
+    if (!user) {
+      console.warn("No user available for fetching curriculums")
+      return
+    }
     
-    console.log("Fetching curriculums for user:", user.id)
+    console.log("🔍 Fetching curriculums for user:", user.id)
     
     try {
       const { data: curriculumsData, error } = await supabase
         .from("Curriculum")
         .select(`
-          *,
+          id,
+          name,
+          description,
+          createdAt,
           years:Year (
-            *,
+            id,
+            number,
+            name,
             subjects:Subject (
-              *,
+              id,
+              name,
+              code,
+              credits,
+              approved,
               prerequisites:Prerequisite (
                 prerequisiteId,
                 prerequisiteSubject:Subject!Prerequisite_prerequisiteId_fkey (
@@ -118,77 +137,105 @@ export default function Dashboard() {
           )
         `)
         .eq("userId", user.id)
-        .order("createdAt", { ascending: true })
+        .order("createdAt", { ascending: false })
 
       if (error) {
-        console.error("Error fetching curriculums:", error)
+        console.error("❌ Error fetching curriculums:", error)
         throw error
       }
 
-      console.log("Raw curriculums data:", curriculumsData)
+      console.log("📊 Raw curriculums data:", curriculumsData)
 
-      console.log("Raw curriculums data:", curriculumsData)
+      // Procesar y ordenar los datos
+      const processedCurriculums = (curriculumsData || []).map((curriculum) => ({
+        ...curriculum,
+        years: (curriculum.years || [])
+          .sort((a: any, b: any) => a.number - b.number)
+          .map((year: any) => ({
+            ...year,
+            subjects: (year.subjects || []).sort((a: any, b: any) => a.name.localeCompare(b.name)),
+          })),
+      }))
 
-      // Ordenar años y materias
-      const processedCurriculums =
-        curriculumsData?.map((curriculum) => ({
-          ...curriculum,
-          years: curriculum.years
-            .sort((a: any, b: any) => a.number - b.number)
-            .map((year: any) => ({
-              ...year,
-              subjects: year.subjects.sort((a: any, b: any) => a.name.localeCompare(b.name)),
-            })),
-        })) || []
-
-      console.log("Processed curriculums:", processedCurriculums)
+      console.log("✅ Processed curriculums:", processedCurriculums)
+      console.log("📈 Total curriculums found:", processedCurriculums.length)
+      
       setCurriculums(processedCurriculums)
       
       if (processedCurriculums.length > 0) {
-        console.log("Setting selected curriculum to:", processedCurriculums[0])
+        console.log("🎯 Setting selected curriculum to:", processedCurriculums[0].name)
         setSelectedCurriculum(processedCurriculums[0])
       } else {
-        console.log("No curriculums found, setting selected to null")
+        console.log("📭 No curriculums found, setting selected to null")
         setSelectedCurriculum(null)
       }
+      
     } catch (error) {
-      console.error("Error fetching curriculums:", error)
+      console.error("💥 Error fetching curriculums:", error)
     } finally {
       setLoading(false)
     }
   }
 
   const createCurriculum = async () => {
-    if (!user || !newCurriculum.name.trim()) {
-      console.log("Missing user or curriculum name")
+    if (!user) {
+      console.error("No user found")
+      return
+    }
+    
+    if (!newCurriculum.name.trim()) {
+      console.error("Curriculum name is required")
       return
     }
 
     setIsCreatingCurriculumLoading(true)
-    console.log("Creating curriculum:", { name: newCurriculum.name, description: newCurriculum.description, userId: user.id })
+    console.log("🚀 Starting curriculum creation:", { 
+      name: newCurriculum.name, 
+      description: newCurriculum.description, 
+      userId: user.id 
+    })
 
     try {
-      const { data, error } = await supabase.from("Curriculum").insert([
-        {
-          name: newCurriculum.name,
-          description: newCurriculum.description,
-          userId: user.id,
-        },
-      ])
-      .select()
+      // Generar un ID único manualmente como workaround
+      const uniqueId = `curriculum_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      const now = new Date().toISOString()
+      
+      const curriculumData = {
+        id: uniqueId,
+        name: newCurriculum.name.trim(),
+        description: newCurriculum.description?.trim() || null,
+        userId: user.id,
+        createdAt: now,
+        updatedAt: now,
+      }
+
+      console.log("📝 Inserting curriculum data:", curriculumData)
+
+      const { data, error } = await supabase
+        .from("Curriculum")
+        .insert([curriculumData])
+        .select("*")
+        .single()
 
       if (error) {
-        console.error("Supabase error:", error)
+        console.error("❌ Supabase error:", error)
         throw error
       }
 
-      console.log("Curriculum created successfully:", data)
+      console.log("✅ Curriculum created successfully:", data)
       
-      await fetchCurriculums()
+      // Limpiar el formulario
       setNewCurriculum({ name: "", description: "" })
       setIsCreatingCurriculum(false)
+      
+      // Refrescar los currículos
+      console.log("🔄 Refreshing curriculums...")
+      await fetchCurriculums()
+      
+      console.log("🎉 Process completed successfully")
     } catch (error) {
-      console.error("Error creating curriculum:", error)
+      console.error("💥 Error creating curriculum:", error)
+      alert("Error al crear el currículo. Por favor intenta de nuevo.")
     } finally {
       setIsCreatingCurriculumLoading(false)
     }
@@ -303,11 +350,17 @@ export default function Dashboard() {
     if (!selectedCurriculum || !newYear.name.trim() || !newYear.number) return
 
     try {
+      const uniqueId = `year_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      const now = new Date().toISOString()
+      
       const { error } = await supabase.from("Year").insert([
         {
+          id: uniqueId,
           number: Number.parseInt(newYear.number),
           name: newYear.name,
           curriculumId: selectedCurriculum.id,
+          createdAt: now,
+          updatedAt: now,
         },
       ])
 
@@ -325,15 +378,21 @@ export default function Dashboard() {
     if (!newSubject.name.trim() || !newSubject.yearId) return
 
     try {
+      const subjectId = `subject_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      const now = new Date().toISOString()
+      
       // Insertar la materia
       const { data: subjectData, error: subjectError } = await supabase
         .from("Subject")
         .insert([
           {
+            id: subjectId,
             name: newSubject.name,
             code: newSubject.code || null,
             credits: newSubject.credits ? Number.parseInt(newSubject.credits) : null,
             yearId: newSubject.yearId,
+            createdAt: now,
+            updatedAt: now,
           },
         ])
         .select()
@@ -344,6 +403,7 @@ export default function Dashboard() {
       // Insertar prerequisitos si los hay
       if (newSubject.prerequisites.length > 0) {
         const prerequisitesData = newSubject.prerequisites.map((prereqId) => ({
+          id: `prereq_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${prereqId}`,
           subjectId: subjectData.id,
           prerequisiteId: prereqId,
         }))
