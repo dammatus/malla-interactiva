@@ -21,8 +21,8 @@ interface Subject {
   credits?: number
   approved: boolean
   prerequisites: {
-    prerequisite_id: string
-    prerequisite_subject: {
+    prerequisiteId: string
+    prerequisiteSubject: {
       id: string
       name: string
       approved: boolean
@@ -93,16 +93,16 @@ export default function Dashboard() {
   const fetchCurriculums = async () => {
     try {
       const { data: curriculumsData, error } = await supabase
-        .from("curriculums")
+        .from("Curriculum")
         .select(`
           *,
-          years (
+          years:Year (
             *,
-            subjects (
+            subjects:Subject (
               *,
-              prerequisites (
-                prerequisite_id,
-                prerequisite_subject:subjects!prerequisites_prerequisite_id_fkey (
+              prerequisites:Prerequisite (
+                prerequisiteId,
+                prerequisiteSubject:Subject!Prerequisite_prerequisiteId_fkey (
                   id,
                   name,
                   approved
@@ -111,7 +111,7 @@ export default function Dashboard() {
             )
           )
         `)
-        .order("created_at", { ascending: true })
+        .order("createdAt", { ascending: true })
 
       if (error) throw error
 
@@ -142,11 +142,11 @@ export default function Dashboard() {
     if (!user || !newCurriculum.name.trim()) return
 
     try {
-      const { error } = await supabase.from("curriculums").insert([
+      const { error } = await supabase.from("Curriculum").insert([
         {
           name: newCurriculum.name,
           description: newCurriculum.description,
-          user_id: user.id,
+          userId: user.id,
         },
       ])
 
@@ -165,7 +165,7 @@ export default function Dashboard() {
 
     try {
       const { error } = await supabase
-        .from("curriculums")
+        .from("Curriculum")
         .update({
           name: editCurriculumForm.name,
           description: editCurriculumForm.description,
@@ -195,11 +195,11 @@ export default function Dashboard() {
     if (!selectedCurriculum || !newYear.name.trim() || !newYear.number) return
 
     try {
-      const { error } = await supabase.from("years").insert([
+      const { error } = await supabase.from("Year").insert([
         {
           number: Number.parseInt(newYear.number),
           name: newYear.name,
-          curriculum_id: selectedCurriculum.id,
+          curriculumId: selectedCurriculum.id,
         },
       ])
 
@@ -219,13 +219,13 @@ export default function Dashboard() {
     try {
       // Insertar la materia
       const { data: subjectData, error: subjectError } = await supabase
-        .from("subjects")
+        .from("Subject")
         .insert([
           {
             name: newSubject.name,
             code: newSubject.code || null,
             credits: newSubject.credits ? Number.parseInt(newSubject.credits) : null,
-            year_id: newSubject.yearId,
+            yearId: newSubject.yearId,
           },
         ])
         .select()
@@ -236,11 +236,11 @@ export default function Dashboard() {
       // Insertar prerequisitos si los hay
       if (newSubject.prerequisites.length > 0) {
         const prerequisitesData = newSubject.prerequisites.map((prereqId) => ({
-          subject_id: subjectData.id,
-          prerequisite_id: prereqId,
+          subjectId: subjectData.id,
+          prerequisiteId: prereqId,
         }))
 
-        const { error: prereqError } = await supabase.from("prerequisites").insert(prerequisitesData)
+        const { error: prereqError } = await supabase.from("Prerequisite").insert(prerequisitesData)
 
         if (prereqError) throw prereqError
       }
@@ -255,7 +255,7 @@ export default function Dashboard() {
 
   const updateSubject = async (subjectId: string, updates: any) => {
     try {
-      const { error } = await supabase.from("subjects").update(updates).eq("id", subjectId)
+      const { error } = await supabase.from("Subject").update(updates).eq("id", subjectId)
 
       if (error) throw error
 
@@ -267,7 +267,7 @@ export default function Dashboard() {
 
   const deleteSubject = async (subjectId: string) => {
     try {
-      const { error } = await supabase.from("subjects").delete().eq("id", subjectId)
+      const { error } = await supabase.from("Subject").delete().eq("id", subjectId)
 
       if (error) throw error
 
@@ -283,7 +283,7 @@ export default function Dashboard() {
 
   const isSubjectAvailable = (subject: Subject): boolean => {
     if (subject.approved) return true
-    return subject.prerequisites.every((prereq) => prereq.prerequisite_subject.approved)
+    return subject.prerequisites.every((prereq) => prereq.prerequisiteSubject.approved)
   }
 
   const getSubjectStatus = (subject: Subject) => {
@@ -628,11 +628,11 @@ export default function Dashboard() {
                           <div className="mt-2 flex flex-wrap gap-1">
                             {subject.prerequisites.map((prereq) => (
                               <Badge
-                                key={prereq.prerequisite_id}
-                                variant={prereq.prerequisite_subject.approved ? "default" : "secondary"}
+                                key={prereq.prerequisiteId}
+                                variant={prereq.prerequisiteSubject.approved ? "default" : "secondary"}
                                 className="text-xs"
                               >
-                                {prereq.prerequisite_subject.name}
+                                {prereq.prerequisiteSubject.name}
                               </Badge>
                             ))}
                           </div>
