@@ -55,6 +55,7 @@ export default function Dashboard() {
   const [isCreatingCurriculum, setIsCreatingCurriculum] = useState(false)
   const [isEditingCurriculum, setIsEditingCurriculum] = useState(false)
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null)
+  const [isCreatingExample, setIsCreatingExample] = useState(false)
 
   const [newSubject, setNewSubject] = useState({
     name: "",
@@ -111,6 +112,7 @@ export default function Dashboard() {
             )
           )
         `)
+        .eq("userId", user?.id)
         .order("createdAt", { ascending: true })
 
       if (error) throw error
@@ -157,6 +159,80 @@ export default function Dashboard() {
       setIsCreatingCurriculum(false)
     } catch (error) {
       console.error("Error creating curriculum:", error)
+    }
+  }
+
+  const createExampleCurriculum = async () => {
+    if (!user) return
+    
+    setIsCreatingExample(true)
+    
+    try {
+      // Crear el currículo de ejemplo
+      const { data: curriculumData, error: curriculumError } = await supabase
+        .from("Curriculum")
+        .insert([
+          {
+            name: "Ingeniería en Sistemas (Ejemplo)",
+            description: "Plan de estudios ejemplo - Universidad Tecnológica",
+            userId: user.id,
+          },
+        ])
+        .select()
+        .single()
+
+      if (curriculumError) throw curriculumError
+
+      // Crear años de ejemplo
+      const yearsToCreate = [
+        { number: 1, name: "Primer Año" },
+        { number: 2, name: "Segundo Año" },
+        { number: 3, name: "Tercer Año" },
+        { number: 4, name: "Cuarto Año" },
+        { number: 5, name: "Quinto Año" }
+      ]
+
+      const { data: yearsData, error: yearsError } = await supabase
+        .from("Year")
+        .insert(
+          yearsToCreate.map(year => ({
+            number: year.number,
+            name: year.name,
+            curriculumId: curriculumData.id
+          }))
+        )
+        .select()
+
+      if (yearsError) throw yearsError
+
+      // Crear algunas materias de ejemplo
+      const subjectsToCreate = [
+        { name: "Matemática I", code: "MAT101", credits: 6, yearIndex: 0 },
+        { name: "Programación I", code: "PRG101", credits: 4, yearIndex: 0 },
+        { name: "Inglés I", code: "ING101", credits: 2, yearIndex: 0 },
+        { name: "Matemática II", code: "MAT201", credits: 6, yearIndex: 1 },
+        { name: "Programación II", code: "PRG201", credits: 4, yearIndex: 1 },
+        { name: "Base de Datos", code: "BDD301", credits: 4, yearIndex: 2 },
+      ]
+
+      const { error: subjectsError } = await supabase
+        .from("Subject")
+        .insert(
+          subjectsToCreate.map(subject => ({
+            name: subject.name,
+            code: subject.code,
+            credits: subject.credits,
+            yearId: yearsData[subject.yearIndex].id
+          }))
+        )
+
+      if (subjectsError) throw subjectsError
+
+      await fetchCurriculums()
+    } catch (error) {
+      console.error("Error creating example curriculum:", error)
+    } finally {
+      setIsCreatingExample(false)
     }
   }
 
@@ -348,16 +424,16 @@ export default function Dashboard() {
           <Card className="text-center py-12">
             <CardContent>
               <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h2 className="text-xl font-semibold mb-2">No tienes currículos creados</h2>
+              <h2 className="text-xl font-semibold mb-2">¡Bienvenido a tu Malla Curricular!</h2>
               <p className="text-gray-600 mb-6">
-                Crea tu primer currículo para comenzar a gestionar tu malla curricular
+                Comienza creando tu primer currículo. Podrás agregar años académicos, materias y definir prerequisitos para organizar tu carrera universitaria.
               </p>
 
               <Dialog open={isCreatingCurriculum} onOpenChange={setIsCreatingCurriculum}>
                 <DialogTrigger asChild>
-                  <Button className="bg-indigo-600 hover:bg-indigo-700">
+                  <Button className="bg-indigo-600 hover:bg-indigo-700 mr-4">
                     <Plus className="h-4 w-4 mr-2" />
-                    Crear Currículo
+                    Crear Mi Currículo
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
@@ -366,12 +442,12 @@ export default function Dashboard() {
                   </DialogHeader>
                   <div className="space-y-4">
                     <div>
-                      <Label htmlFor="curriculum-name">Nombre del Currículo</Label>
+                      <Label htmlFor="curriculum-name">Nombre de tu Carrera</Label>
                       <Input
                         id="curriculum-name"
                         value={newCurriculum.name}
                         onChange={(e) => setNewCurriculum({ ...newCurriculum, name: e.target.value })}
-                        placeholder="Ej: Ingeniería en Sistemas"
+                        placeholder="Ej: Ingeniería en Sistemas, Medicina, Derecho, etc."
                       />
                     </div>
                     <div>
@@ -380,7 +456,7 @@ export default function Dashboard() {
                         id="curriculum-description"
                         value={newCurriculum.description}
                         onChange={(e) => setNewCurriculum({ ...newCurriculum, description: e.target.value })}
-                        placeholder="Descripción del currículo"
+                        placeholder="Universidad, modalidad, año de plan de estudios, etc."
                       />
                     </div>
                     <Button onClick={createCurriculum} className="w-full">
@@ -389,6 +465,16 @@ export default function Dashboard() {
                   </div>
                 </DialogContent>
               </Dialog>
+              
+              <Button 
+                variant="outline" 
+                onClick={createExampleCurriculum}
+                disabled={isCreatingExample}
+                className="text-gray-600 hover:text-gray-800"
+              >
+                <BookOpen className="h-4 w-4 mr-2" />
+                {isCreatingExample ? "Creando ejemplo..." : "Ver Ejemplo (Ing. Sistemas)"}
+              </Button>
             </CardContent>
           </Card>
         </div>
