@@ -125,7 +125,7 @@ export default function Dashboard() {
               code,
               credits,
               approved,
-              prerequisites:Prerequisite (
+              prerequisites:Prerequisite!Prerequisite_subjectId_fkey (
                 prerequisiteId,
                 prerequisiteSubject:Subject!Prerequisite_prerequisiteId_fkey (
                   id,
