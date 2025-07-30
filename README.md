@@ -58,7 +58,12 @@ npm install
 cp .env.example .env.local
 ```
 
-Completa el archivo `.env.local` con tus credenciales de Supabase:
+⚠️ **IMPORTANTE - SEGURIDAD:**
+- El archivo `.env.local` contiene credenciales sensibles y NO se sube al repositorio
+- Solo el archivo `.env.example` (con placeholders) se incluye en Git
+- Para producción, configura las variables de entorno directamente en Vercel
+
+Completa el archivo `.env.local` con tus credenciales reales de Supabase:
 ```env
 # Database
 DATABASE_URL="tu-connection-string-de-supabase"
@@ -119,8 +124,8 @@ npm run dev
 3. **Variables de entorno en Vercel**
    ```
    DATABASE_URL
-   NEXTAUTH_URL
-   NEXTAUTH_SECRET
+   NEXTAUTH_URL (usa tu dominio de Vercel)
+   NEXTAUTH_SECRET (genera uno nuevo para producción)
    NEXT_PUBLIC_SUPABASE_URL
    NEXT_PUBLIC_SUPABASE_ANON_KEY
    SUPABASE_SERVICE_ROLE_KEY
@@ -128,6 +133,33 @@ npm run dev
 
 4. **Deploy automático**
    - Vercel deployará automáticamente en cada push a main
+
+## 🔒 Seguridad y Variables de Entorno
+
+### ✅ Lo que SÍ está en el repositorio:
+- `.env.example` - Archivo de ejemplo con placeholders
+- Código fuente sin credenciales hardcodeadas
+- Configuración de la aplicación
+
+### ❌ Lo que NO está en el repositorio:
+- `.env.local` - Credenciales reales (protegido por .gitignore)
+- Contraseñas de base de datos
+- API keys privadas
+- Tokens de autenticación
+
+### 🛡️ Mejores prácticas implementadas:
+- Variables sensibles en archivos .env (no trackeados)
+- Separación entre configuración de desarrollo y producción
+- Documentación clara de configuración segura
+- Archivo .env.example como guía
+
+### 🔄 Para colaboradores:
+1. Clona el repositorio
+2. Copia `.env.example` como `.env.local`
+3. Configura tus propias credenciales de Supabase
+4. Nunca commitees archivos `.env*` excepto `.env.example`
+
+**📖 Para más detalles de seguridad, ve el archivo [DEPLOYMENT.md](DEPLOYMENT.md)**
 
 ## 🤝 Contribuir
 
