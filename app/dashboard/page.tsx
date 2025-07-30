@@ -429,10 +429,29 @@ export default function Dashboard() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-center">
-          <GraduationCap className="h-12 w-12 text-indigo-600 mx-auto mb-4 animate-pulse" />
-          <p className="text-gray-600">Cargando...</p>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+        {/* Header con botón de cerrar sesión siempre visible */}
+        <div className="p-4">
+          <div className="max-w-7xl mx-auto flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <GraduationCap className="h-8 w-8 text-indigo-600" />
+              <h1 className="text-3xl font-bold text-gray-900">Malla Curricular</h1>
+            </div>
+            {user && (
+              <Button onClick={handleSignOut} variant="outline">
+                <LogOut className="h-4 w-4 mr-2" />
+                Cerrar Sesión
+              </Button>
+            )}
+          </div>
+        </div>
+        
+        {/* Contenido de carga centrado */}
+        <div className="flex items-center justify-center min-h-[80vh]">
+          <div className="text-center">
+            <GraduationCap className="h-12 w-12 text-indigo-600 mx-auto mb-4 animate-pulse" />
+            <p className="text-gray-600">Cargando...</p>
+          </div>
         </div>
       </div>
     )
@@ -504,12 +523,11 @@ export default function Dashboard() {
               
               <Button 
                 variant="outline" 
-                onClick={createExampleCurriculum}
-                disabled={isCreatingExample}
+                onClick={() => router.push("/")}
                 className="text-gray-600 hover:text-gray-800"
               >
                 <BookOpen className="h-4 w-4 mr-2" />
-                {isCreatingExample ? "Creando ejemplo..." : "Ver Ejemplo (Ing. Sistemas)"}
+                Ver Ejemplo
               </Button>
             </CardContent>
           </Card>

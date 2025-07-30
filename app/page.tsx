@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/hooks/useAuth"
+import { supabase } from "@/lib/supabase"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { 
   GraduationCap, 
@@ -14,7 +16,8 @@ import {
   X,
   Info,
   Lock,
-  Unlock
+  Unlock,
+  LogOut
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -48,6 +51,12 @@ interface Curriculum {
 
 export default function HomePage() {
   const { user, loading } = useAuth()
+  const router = useRouter()
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    router.push("/auth")
+  }
   
   const [curriculum, setCurriculum] = useState<Curriculum>({
     id: "curriculum-1",
@@ -202,11 +211,30 @@ export default function HomePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-center">
-          <GraduationCap className="h-16 w-16 text-indigo-600 mx-auto mb-4 animate-pulse" />
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Malla Curricular Universitaria</h1>
-          <p className="text-gray-600">Cargando...</p>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+        {/* Header con botón de cerrar sesión siempre visible */}
+        <div className="p-4">
+          <div className="max-w-7xl mx-auto flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <GraduationCap className="h-8 w-8 text-indigo-600" />
+              <h1 className="text-3xl font-bold text-gray-900">Malla Curricular</h1>
+            </div>
+            {user && (
+              <Button onClick={handleSignOut} variant="outline">
+                <LogOut className="h-4 w-4 mr-2" />
+                Cerrar Sesión
+              </Button>
+            )}
+          </div>
+        </div>
+        
+        {/* Contenido de carga centrado */}
+        <div className="flex items-center justify-center min-h-[80vh]">
+          <div className="text-center">
+            <GraduationCap className="h-16 w-16 text-indigo-600 mx-auto mb-4 animate-pulse" />
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Malla Curricular Universitaria</h1>
+            <p className="text-gray-600">Cargando...</p>
+          </div>
         </div>
       </div>
     )
@@ -235,15 +263,31 @@ export default function HomePage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <GraduationCap className="h-8 w-8 text-indigo-600" />
-            <h1 className="text-4xl font-bold text-gray-900">{curriculum.name}</h1>
+        <div className="flex justify-between items-start mb-8">
+          <div className="text-center flex-1">
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <GraduationCap className="h-8 w-8 text-indigo-600" />
+              <h1 className="text-4xl font-bold text-gray-900">{curriculum.name}</h1>
+            </div>
+            <p className="text-gray-600 text-lg">
+              ¡Bienvenido {user.email}! Gestiona tu progreso universitario
+            </p>
+            <p className="text-gray-500 text-sm">{curriculum.description}</p>
           </div>
-          <p className="text-gray-600 text-lg">
-            ¡Bienvenido {user.email}! Gestiona tu progreso universitario
-          </p>
-          <p className="text-gray-500 text-sm">{curriculum.description}</p>
+          
+          {/* Botones de navegación */}
+          <div className="flex flex-col gap-2">
+            <Link href="/dashboard">
+              <Button variant="outline" className="w-full">
+                <GraduationCap className="h-4 w-4 mr-2" />
+                Mi Dashboard
+              </Button>
+            </Link>
+            <Button onClick={handleSignOut} variant="outline">
+              <LogOut className="h-4 w-4 mr-2" />
+              Cerrar Sesión
+            </Button>
+          </div>
         </div>
 
         {/* Agregar Año */}
