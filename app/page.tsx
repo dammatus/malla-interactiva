@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useAuth } from "@/hooks/useAuth"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
@@ -16,8 +16,9 @@ import {
   X,
   Info,
   Lock,
-  Unlock,
-  LogOut
+  LogOut,
+  BookOpen,
+  Trophy
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -25,6 +26,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Checkbox } from "@/components/ui/checkbox"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 interface Subject {
   id: string
@@ -32,7 +34,7 @@ interface Subject {
   code?: string
   credits?: number
   approved: boolean
-  prerequisites: string[] // IDs de materias prerrequisito
+  prerequisites: string[]
 }
 
 interface YearData {
@@ -102,7 +104,6 @@ export default function HomePage() {
   })
 
   const [editingYear, setEditingYear] = useState<string | null>(null)
-  const [editingSubject, setEditingSubject] = useState<string | null>(null)
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null)
   const [newYearName, setNewYearName] = useState("")
   const [subjectForm, setSubjectForm] = useState({
@@ -173,7 +174,7 @@ export default function HomePage() {
   // Agregar nueva materia
   const addSubject = (yearId: string) => {
     if (!subjectForm.name.trim()) return
-
+    
     const newSubject: Subject = {
       id: `subject-${Date.now()}`,
       name: subjectForm.name,
@@ -182,7 +183,7 @@ export default function HomePage() {
       approved: false,
       prerequisites: subjectForm.prerequisites
     }
-
+    
     setCurriculum(prev => ({
       ...prev,
       years: prev.years.map(year =>
@@ -191,49 +192,66 @@ export default function HomePage() {
           : year
       )
     }))
-
-    // Reset form
-    setSubjectForm({ name: "", code: "", credits: "", prerequisites: [] })
-    setEditingSubject(null)
+    
+    setSubjectForm({
+      name: "",
+      code: "",
+      credits: "",
+      prerequisites: []
+    })
   }
 
   // Eliminar materia
-  const deleteSubject = (yearId: string, subjectId: string) => {
+  const deleteSubject = (subjectId: string) => {
     setCurriculum(prev => ({
       ...prev,
-      years: prev.years.map(year =>
-        year.id === yearId
-          ? { ...year, subjects: year.subjects.filter(s => s.id !== subjectId) }
-          : year
-      )
+      years: prev.years.map(year => ({
+        ...year,
+        subjects: year.subjects.filter(subject => subject.id !== subjectId)
+      }))
+    }))
+  }
+
+  // Eliminar año
+  const deleteYear = (yearId: string) => {
+    setCurriculum(prev => ({
+      ...prev,
+      years: prev.years.filter(year => year.id !== yearId)
     }))
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        {/* Header con botón de cerrar sesión siempre visible */}
-        <div className="p-4">
+      <div className="min-h-screen bg-background transition-colors duration-300">
+        <div className="p-4 border-b border-border/50 backdrop-blur-sm bg-background/80 sticky top-0 z-50">
           <div className="max-w-7xl mx-auto flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <GraduationCap className="h-8 w-8 text-indigo-600" />
-              <h1 className="text-3xl font-bold text-gray-900">Malla Curricular</h1>
+            <div className="flex items-center gap-3 animate-fade-in">
+              <div className="relative">
+                <GraduationCap className="h-8 w-8 text-primary transition-colors duration-300" />
+                <div className="absolute inset-0 bg-primary/20 rounded-full blur-lg opacity-50 animate-pulse-subtle"></div>
+              </div>
+              <h1 className="text-3xl font-bold text-foreground">Malla Curricular</h1>
             </div>
-            {user && (
-              <Button onClick={handleSignOut} variant="outline">
-                <LogOut className="h-4 w-4 mr-2" />
-                Cerrar Sesión
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              {user && (
+                <Button onClick={handleSignOut} variant="outline" className="hover:scale-105 transition-transform duration-200">
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Cerrar Sesión
+                </Button>
+              )}
+            </div>
           </div>
         </div>
         
-        {/* Contenido de carga centrado */}
         <div className="flex items-center justify-center min-h-[80vh]">
-          <div className="text-center">
-            <GraduationCap className="h-16 w-16 text-indigo-600 mx-auto mb-4 animate-pulse" />
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Malla Curricular Universitaria</h1>
-            <p className="text-gray-600">Cargando...</p>
+          <div className="text-center animate-fade-in">
+            <div className="relative mb-6">
+              <GraduationCap className="h-16 w-16 text-primary mx-auto animate-pulse-subtle" />
+              <div className="absolute inset-0 bg-primary/20 rounded-full blur-2xl opacity-30 animate-pulse"></div>
+            </div>
+            <h1 className="text-2xl font-bold text-foreground mb-2">Malla Curricular Universitaria</h1>
+            <p className="text-muted-foreground">Cargando...</p>
           </div>
         </div>
       </div>
@@ -242,75 +260,149 @@ export default function HomePage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-8">
-          <GraduationCap className="h-16 w-16 text-indigo-600 mx-auto mb-4" />
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">Malla Curricular Interactiva</h1>
-          <p className="text-gray-600 mb-6">
+      <div className="min-h-screen bg-background flex items-center justify-center transition-colors duration-300">
+        <div className="text-center max-w-md mx-auto p-8 animate-fade-in">
+          <div className="relative mb-6">
+            <GraduationCap className="h-16 w-16 text-primary mx-auto" />
+            <div className="absolute inset-0 bg-primary/20 rounded-full blur-2xl opacity-30"></div>
+          </div>
+          <h1 className="text-3xl font-bold text-foreground mb-4">Malla Curricular Interactiva</h1>
+          <p className="text-muted-foreground mb-6">
             Gestiona tu progreso universitario de manera intuitiva
           </p>
           <Link href="/auth">
-            <Button size="lg" className="w-full">
+            <Button size="lg" className="w-full hover:scale-105 transition-transform duration-200">
               Iniciar Sesión
             </Button>
           </Link>
+        </div>
+        <div className="absolute top-4 right-4">
+          <ThemeToggle />
         </div>
       </div>
     )
   }
 
+  const totalSubjects = curriculum.years.reduce((acc, year) => acc + year.subjects.length, 0)
+  const approvedSubjects = curriculum.years.reduce((acc, year) => 
+    acc + year.subjects.filter(s => s.approved).length, 0)
+  const progress = totalSubjects > 0 ? (approvedSubjects / totalSubjects) * 100 : 0
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-start mb-8">
-          <div className="text-center flex-1">
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <GraduationCap className="h-8 w-8 text-indigo-600" />
-              <h1 className="text-4xl font-bold text-gray-900">{curriculum.name}</h1>
+    <div className="min-h-screen bg-background transition-colors duration-300">
+      {/* Header mejorado */}
+      <div className="border-b border-border/50 backdrop-blur-sm bg-background/80 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto p-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-4 animate-slide-in-left">
+              <div className="relative">
+                <GraduationCap className="h-8 w-8 text-primary transition-colors duration-300" />
+                <div className="absolute inset-0 bg-primary/20 rounded-full blur-lg opacity-50"></div>
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">{curriculum.name}</h1>
+                <p className="text-sm text-muted-foreground">¡Bienvenido {user.email}!</p>
+              </div>
             </div>
-            <p className="text-gray-600 text-lg">
-              ¡Bienvenido {user.email}! Gestiona tu progreso universitario
-            </p>
-            <p className="text-gray-500 text-sm">{curriculum.description}</p>
-          </div>
-          
-          {/* Botones de navegación */}
-          <div className="flex flex-col gap-2">
-            <Link href="/dashboard">
-              <Button variant="outline" className="w-full">
-                <GraduationCap className="h-4 w-4 mr-2" />
-                Mi Dashboard
+            
+            <div className="flex items-center gap-2 animate-slide-in-right">
+              <Link href="/dashboard">
+                <Button variant="outline" className="hover:scale-105 transition-transform duration-200">
+                  <BookOpen className="h-4 w-4 mr-2" />
+                  Dashboard
+                </Button>
+              </Link>
+              <ThemeToggle />
+              <Button onClick={handleSignOut} variant="outline" className="hover:scale-105 transition-transform duration-200">
+                <LogOut className="h-4 w-4 mr-2" />
+                Cerrar Sesión
               </Button>
-            </Link>
-            <Button onClick={handleSignOut} variant="outline">
-              <LogOut className="h-4 w-4 mr-2" />
-              Cerrar Sesión
-            </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto p-4">
+        {/* Estadísticas mejoradas */}
+        <div className="mb-8 animate-fade-in">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card className="hover:shadow-lg transition-all duration-300 hover:scale-105 border-border/50 bg-card/50 backdrop-blur-sm">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-green-500/10 rounded-full">
+                    <CheckCircle2 className="h-6 w-6 text-green-500" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-foreground">{approvedSubjects}</p>
+                    <p className="text-sm text-muted-foreground">Materias Aprobadas</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="hover:shadow-lg transition-all duration-300 hover:scale-105 border-border/50 bg-card/50 backdrop-blur-sm">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-blue-500/10 rounded-full">
+                    <BookOpen className="h-6 w-6 text-blue-500" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-foreground">{totalSubjects}</p>
+                    <p className="text-sm text-muted-foreground">Total Materias</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="hover:shadow-lg transition-all duration-300 hover:scale-105 border-border/50 bg-card/50 backdrop-blur-sm">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-primary/10 rounded-full">
+                    <Trophy className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-foreground">{progress.toFixed(1)}%</p>
+                    <p className="text-sm text-muted-foreground">Progreso</p>
+                  </div>
+                </div>
+                <div className="mt-3 w-full bg-secondary/20 rounded-full h-2">
+                  <div 
+                    className="bg-primary h-2 rounded-full transition-all duration-500 ease-out" 
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
 
         {/* Agregar Año */}
-        <div className="mb-6 bg-white rounded-lg shadow p-4">
-          <div className="flex gap-2 items-center">
-            <Input
-              placeholder="Nombre del nuevo año (ej: Cuarto Año)"
-              value={newYearName}
-              onChange={(e) => setNewYearName(e.target.value)}
-              className="flex-1"
-            />
-            <Button onClick={addYear} disabled={!newYearName.trim()}>
-              <Plus className="h-4 w-4 mr-2" />
-              Agregar Año
-            </Button>
-          </div>
-        </div>
+        <Card className="mb-6 border-border/50 bg-card/50 backdrop-blur-sm animate-fade-in">
+          <CardContent className="p-4">
+            <div className="flex gap-2 items-center">
+              <Input
+                placeholder="Nombre del nuevo año (ej: Cuarto Año)"
+                value={newYearName}
+                onChange={(e) => setNewYearName(e.target.value)}
+                className="flex-1"
+              />
+              <Button onClick={addYear} disabled={!newYearName.trim()} className="hover:scale-105 transition-transform duration-200">
+                <Plus className="h-4 w-4 mr-2" />
+                Agregar Año
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Grid de Años */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {curriculum.years.map((yearData) => (
-            <Card key={yearData.id} className="shadow-lg hover:shadow-xl transition-shadow duration-300">
-              <CardHeader className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-t-lg">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
+          {curriculum.years.map((yearData, index) => (
+            <Card 
+              key={yearData.id} 
+              className="shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] border-border/50 bg-card/50 backdrop-blur-sm animate-scale-in"
+              style={{ animationDelay: `${index * 100}ms` }}
+            >
+              <CardHeader className="bg-gradient-to-r from-primary/80 to-primary text-primary-foreground rounded-t-lg">
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="text-xl font-bold">{yearData.name}</CardTitle>
@@ -318,269 +410,281 @@ export default function HomePage() {
                       {yearData.subjects.filter((s) => s.approved).length} / {yearData.subjects.length} aprobadas
                     </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-white hover:bg-white/20"
-                    onClick={() => setEditingSubject(yearData.id)}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setEditingYear(editingYear === yearData.id ? null : yearData.id)}
+                      className="h-8 w-8 text-primary-foreground hover:bg-primary-foreground/20"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => deleteYear(yearData.id)}
+                      className="h-8 w-8 text-primary-foreground hover:bg-red-500/20"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
-              <CardContent className="p-4">
-                <div className="space-y-3">
-                  {yearData.subjects.map((subject) => {
-                    const isAvailable = canTakeSubject(subject)
-                    return (
-                      <div
-                        key={subject.id}
-                        className={`p-3 rounded-lg border-2 transition-all duration-300 ${
-                          subject.approved 
-                            ? "bg-green-50 border-green-200 text-green-800" 
-                            : isAvailable
-                            ? "bg-blue-50 border-blue-200 text-blue-800 hover:bg-blue-100 cursor-pointer"
-                            : "bg-gray-50 border-gray-200 text-gray-500"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div 
-                            className="flex items-center gap-2 flex-1"
-                            onClick={() => isAvailable ? handleSubjectToggle(subject.id) : null}
-                          >
-                            {subject.approved ? (
-                              <CheckCircle2 className="h-4 w-4 text-green-600" />
-                            ) : isAvailable ? (
-                              <Circle className="h-4 w-4 text-blue-600" />
-                            ) : (
-                              <Lock className="h-4 w-4 text-gray-400" />
+
+              <CardContent className="p-4 space-y-3">
+                {/* Lista de materias */}
+                {yearData.subjects.map((subject, subjectIndex) => {
+                  const canTake = canTakeSubject(subject)
+                  return (
+                    <div
+                      key={subject.id}
+                      className={`
+                        p-3 rounded-lg border transition-all duration-300 cursor-pointer hover:scale-[1.02]
+                        ${subject.approved 
+                          ? 'bg-green-500/10 border-green-500/30 text-green-700 dark:text-green-300' 
+                          : canTake 
+                            ? 'bg-blue-500/10 border-blue-500/30 text-blue-700 dark:text-blue-300 hover:bg-blue-500/20' 
+                            : 'bg-muted border-muted-foreground/20 text-muted-foreground cursor-not-allowed'
+                        }
+                      `}
+                      style={{ animationDelay: `${(index * 100) + (subjectIndex * 50)}ms` }}
+                      onClick={() => canTake && handleSubjectToggle(subject.id)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {subject.approved ? (
+                            <CheckCircle2 className="h-5 w-5 text-green-500" />
+                          ) : canTake ? (
+                            <Circle className="h-5 w-5 text-blue-500" />
+                          ) : (
+                            <Lock className="h-5 w-5 text-muted-foreground" />
+                          )}
+                          <div>
+                            <div className="font-semibold">{subject.name}</div>
+                            {subject.code && (
+                              <div className="text-xs opacity-70">{subject.code}</div>
                             )}
-                            <div className="flex-1">
-                              <span className={`font-medium text-sm ${subject.approved ? "line-through" : ""}`}>
-                                {subject.name}
-                              </span>
-                              {subject.code && (
-                                <div className="text-xs opacity-75">{subject.code}</div>
-                              )}
-                            </div>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0"
-                              onClick={() => setSelectedSubject(subject)}
-                            >
-                              <Info className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
-                              onClick={() => deleteSubject(yearData.id, subject.id)}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                  
-                  {/* Formulario para agregar materia */}
-                  {editingSubject === yearData.id && (
-                    <div className="p-3 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                      <div className="space-y-2">
-                        <Input
-                          placeholder="Nombre de la materia"
-                          value={subjectForm.name}
-                          onChange={(e) => setSubjectForm(prev => ({ ...prev, name: e.target.value }))}
-                        />
-                        <div className="flex gap-2">
-                          <Input
-                            placeholder="Código"
-                            value={subjectForm.code}
-                            onChange={(e) => setSubjectForm(prev => ({ ...prev, code: e.target.value }))}
-                          />
-                          <Input
-                            placeholder="Créditos"
-                            type="number"
-                            value={subjectForm.credits}
-                            onChange={(e) => setSubjectForm(prev => ({ ...prev, credits: e.target.value }))}
-                          />
                         </div>
                         
-                        {/* Selección de prerrequisitos */}
-                        <div>
-                          <Label className="text-xs text-gray-600">Prerrequisitos:</Label>
-                          <div className="max-h-32 overflow-y-auto border rounded p-2 bg-white">
-                            {getAllSubjects()
-                              .filter(s => s.id !== editingSubject && !curriculum.years.find(y => y.id === yearData.id)?.subjects.some(subj => subj.id === s.id))
-                              .map(subject => (
-                                <div key={subject.id} className="flex items-center space-x-2 py-1">
-                                  <Checkbox
-                                    id={subject.id}
-                                    checked={subjectForm.prerequisites.includes(subject.id)}
-                                    onCheckedChange={(checked) => {
-                                      if (checked) {
-                                        setSubjectForm(prev => ({
-                                          ...prev,
-                                          prerequisites: [...prev.prerequisites, subject.id]
-                                        }))
-                                      } else {
-                                        setSubjectForm(prev => ({
-                                          ...prev,
-                                          prerequisites: prev.prerequisites.filter(id => id !== subject.id)
-                                        }))
-                                      }
-                                    }}
-                                  />
-                                  <Label htmlFor={subject.id} className="text-xs">
-                                    {subject.name} ({subject.code})
-                                  </Label>
+                        <div className="flex items-center gap-1">
+                          {subject.credits && (
+                            <span className="text-xs bg-background/50 px-2 py-1 rounded">
+                              {subject.credits} cr
+                            </span>
+                          )}
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setSelectedSubject(subject)
+                                }}
+                              >
+                                <Info className="h-3 w-3" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="animate-scale-in">
+                              <DialogHeader>
+                                <DialogTitle>{subject.name}</DialogTitle>
+                              </DialogHeader>
+                              <div className="space-y-4">
+                                <div>
+                                  <Label>Código:</Label>
+                                  <p className="text-sm text-muted-foreground">{subject.code || "No especificado"}</p>
                                 </div>
-                              ))}
-                          </div>
-                        </div>
-                        
-                        <div className="flex gap-2">
-                          <Button 
-                            size="sm" 
-                            onClick={() => addSubject(yearData.id)}
-                            disabled={!subjectForm.name.trim()}
-                          >
-                            <Save className="h-3 w-3 mr-1" />
-                            Guardar
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => {
-                              setEditingSubject(null)
-                              setSubjectForm({ name: "", code: "", credits: "", prerequisites: [] })
+                                <div>
+                                  <Label>Créditos:</Label>
+                                  <p className="text-sm text-muted-foreground">{subject.credits || "No especificado"}</p>
+                                </div>
+                                <div>
+                                  <Label>Estado:</Label>
+                                  <p className={`text-sm font-semibold ${
+                                    subject.approved ? "text-green-600" : 
+                                    canTake ? "text-blue-600" : "text-gray-500"
+                                  }`}>
+                                    {subject.approved ? "Aprobada" : 
+                                     canTake ? "Disponible" : "Bloqueada"}
+                                  </p>
+                                </div>
+                                {subject.prerequisites.length > 0 && (
+                                  <div>
+                                    <Label>Prerrequisitos:</Label>
+                                    <ul className="text-sm text-muted-foreground list-disc list-inside">
+                                      {getPrerequisiteNames(subject.prerequisites).map((name, i) => (
+                                        <li key={i}>{name}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 hover:bg-red-500/20 hover:text-red-500"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              deleteSubject(subject.id)
                             }}
                           >
-                            <X className="h-3 w-3 mr-1" />
-                            Cancelar
+                            <Trash2 className="h-3 w-3" />
                           </Button>
                         </div>
                       </div>
                     </div>
-                  )}
-                </div>
+                  )
+                })}
+
+                {/* Agregar nueva materia */}
+                {editingYear === yearData.id && (
+                  <div className="p-3 border border-dashed border-border rounded-lg space-y-3 animate-scale-in">
+                    <Input
+                      placeholder="Nombre de la materia"
+                      value={subjectForm.name}
+                      onChange={(e) => setSubjectForm({...subjectForm, name: e.target.value})}
+                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input
+                        placeholder="Código (ej: MAT101)"
+                        value={subjectForm.code}
+                        onChange={(e) => setSubjectForm({...subjectForm, code: e.target.value})}
+                      />
+                      <Input
+                        placeholder="Créditos"
+                        type="number"
+                        value={subjectForm.credits}
+                        onChange={(e) => setSubjectForm({...subjectForm, credits: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">Prerrequisitos:</Label>
+                      <div className="mt-2 max-h-32 overflow-y-auto space-y-1">
+                        {getAllSubjects().map((availableSubject) => (
+                          <div key={availableSubject.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={availableSubject.id}
+                              checked={subjectForm.prerequisites.includes(availableSubject.id)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSubjectForm({
+                                    ...subjectForm,
+                                    prerequisites: [...subjectForm.prerequisites, availableSubject.id]
+                                  })
+                                } else {
+                                  setSubjectForm({
+                                    ...subjectForm,
+                                    prerequisites: subjectForm.prerequisites.filter(id => id !== availableSubject.id)
+                                  })
+                                }
+                              }}
+                            />
+                            <Label htmlFor={availableSubject.id} className="text-sm">
+                              {availableSubject.name}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button 
+                        size="sm" 
+                        onClick={() => addSubject(yearData.id)}
+                        disabled={!subjectForm.name.trim()}
+                        className="hover:scale-105 transition-transform duration-200"
+                      >
+                        <Save className="h-3 w-3 mr-1" />
+                        Guardar
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={() => setEditingYear(null)}
+                        className="hover:scale-105 transition-transform duration-200"
+                      >
+                        <X className="h-3 w-3 mr-1" />
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Botón para agregar materia */}
+                {editingYear !== yearData.id && (
+                  <Button
+                    variant="dashed"
+                    className="w-full border-dashed border-2 border-border hover:border-primary hover:text-primary transition-all duration-300"
+                    onClick={() => setEditingYear(yearData.id)}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Agregar Materia
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ))}
         </div>
 
-        {/* Dialog de información de materia */}
-        {selectedSubject && (
-          <Dialog open={!!selectedSubject} onOpenChange={() => setSelectedSubject(null)}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <GraduationCap className="h-5 w-5" />
-                  {selectedSubject.name}
-                </DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-sm font-medium text-gray-500">Código</Label>
-                    <p className="text-sm">{selectedSubject.code || "No definido"}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-gray-500">Créditos</Label>
-                    <p className="text-sm">{selectedSubject.credits || "No definido"}</p>
-                  </div>
-                </div>
-                
-                <div>
-                  <Label className="text-sm font-medium text-gray-500">Estado</Label>
-                  <div className="flex items-center gap-2 mt-1">
-                    {selectedSubject.approved ? (
-                      <div className="flex items-center gap-2 text-green-600">
-                        <CheckCircle2 className="h-4 w-4" />
-                        <span className="text-sm">Aprobada</span>
-                      </div>
-                    ) : canTakeSubject(selectedSubject) ? (
-                      <div className="flex items-center gap-2 text-blue-600">
-                        <Unlock className="h-4 w-4" />
-                        <span className="text-sm">Disponible para cursar</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 text-gray-500">
-                        <Lock className="h-4 w-4" />
-                        <span className="text-sm">Bloqueada (faltan prerrequisitos)</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {selectedSubject.prerequisites.length > 0 && (
-                  <div>
-                    <Label className="text-sm font-medium text-gray-500">Prerrequisitos</Label>
-                    <div className="mt-2 space-y-1">
-                      {getPrerequisiteNames(selectedSubject.prerequisites).map((prereqName, index) => {
-                        const prereqId = selectedSubject.prerequisites[index]
-                        const prereqSubject = getAllSubjects().find(s => s.id === prereqId)
-                        return (
-                          <div key={prereqId} className="flex items-center gap-2 text-sm">
-                            {prereqSubject?.approved ? (
-                              <CheckCircle2 className="h-3 w-3 text-green-500" />
-                            ) : (
-                              <Circle className="h-3 w-3 text-gray-400" />
-                            )}
-                            <span className={prereqSubject?.approved ? "text-green-600" : "text-gray-500"}>
-                              {prereqName}
-                            </span>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                <Button 
-                  className="w-full" 
-                  onClick={() => {
-                    if (canTakeSubject(selectedSubject)) {
-                      handleSubjectToggle(selectedSubject.id)
-                    }
-                    setSelectedSubject(null)
-                  }}
-                  disabled={!canTakeSubject(selectedSubject) && !selectedSubject.approved}
-                >
-                  {selectedSubject.approved ? "Marcar como No Aprobada" : "Marcar como Aprobada"}
-                </Button>
+        {/* Información de uso mejorada */}
+        <Card className="mt-8 border-border/50 bg-card/50 backdrop-blur-sm animate-fade-in">
+          <CardContent className="p-6">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Info className="h-5 w-5" />
+              ¿Cómo usar la aplicación?
+            </h3>
+            <div className="grid md:grid-cols-2 gap-6 text-sm">
+              <div>
+                <h4 className="font-medium text-foreground mb-3 flex items-center gap-2">
+                  <Circle className="h-4 w-4" />
+                  Estados de las materias:
+                </h4>
+                <ul className="space-y-2">
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    <span className="text-green-600 dark:text-green-400 font-medium">Verde:</span>
+                    <span className="text-muted-foreground">Materias aprobadas</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Circle className="h-4 w-4 text-blue-500" />
+                    <span className="text-blue-600 dark:text-blue-400 font-medium">Azul:</span>
+                    <span className="text-muted-foreground">Disponibles para cursar</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Lock className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-muted-foreground font-medium">Gris:</span>
+                    <span className="text-muted-foreground">Bloqueadas (faltan prerrequisitos)</span>
+                  </li>
+                </ul>
               </div>
-            </DialogContent>
-          </Dialog>
-        )}
-
-        {/* Información de uso */}
-        <div className="mt-8 bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-4">¿Cómo usar la aplicación?</h3>
-          <div className="grid md:grid-cols-2 gap-4 text-sm text-gray-600">
-            <div>
-              <h4 className="font-medium text-gray-800 mb-2">Materias:</h4>
-              <ul className="space-y-1">
-                <li>• <span className="text-green-600">Verde</span>: Materias aprobadas</li>
-                <li>• <span className="text-blue-600">Azul</span>: Disponibles para cursar</li>
-                <li>• <span className="text-gray-500">Gris</span>: Bloqueadas (faltan prerrequisitos)</li>
-              </ul>
+              <div>
+                <h4 className="font-medium text-foreground mb-3 flex items-center gap-2">
+                  Acciones disponibles:
+                </h4>
+                <ul className="space-y-2">
+                  <li className="flex items-center gap-2">
+                    <span className="text-muted-foreground">• Clic en materia: aprobar/desaprobar</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Info className="h-3 w-3" />
+                    <span className="text-muted-foreground">Ver detalles y prerrequisitos</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Plus className="h-3 w-3" />
+                    <span className="text-muted-foreground">Agregar nueva materia</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Trash2 className="h-3 w-3" />
+                    <span className="text-muted-foreground">Eliminar materia</span>
+                  </li>
+                </ul>
+              </div>
             </div>
-            <div>
-              <h4 className="font-medium text-gray-800 mb-2">Acciones:</h4>
-              <ul className="space-y-1">
-                <li>• Clic en materia: aprobar/desaprobar</li>
-                <li>• Botón <Info className="h-3 w-3 inline" />: ver detalles y prerrequisitos</li>
-                <li>• Botón <Plus className="h-3 w-3 inline" />: agregar nueva materia</li>
-                <li>• Botón <Trash2 className="h-3 w-3 inline" />: eliminar materia</li>
-              </ul>
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

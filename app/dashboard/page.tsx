@@ -12,6 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { DashboardStats } from "@/components/ui/dashboard-stats"
 import { Plus, GraduationCap, Lock, CheckCircle2, Circle, Trash2, Edit3, LogOut, BookOpen } from "lucide-react"
 
 interface Subject {
@@ -465,21 +467,21 @@ export default function Dashboard() {
   const getStatusStyles = (status: string) => {
     switch (status) {
       case "approved":
-        return "bg-green-50 border-green-200 text-green-800 hover:bg-green-100"
+        return "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-800/30"
       case "available":
-        return "bg-blue-50 border-blue-200 text-blue-800 hover:bg-blue-100"
+        return "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-800/30"
       case "locked":
-        return "bg-gray-50 border-gray-200 text-gray-500"
+        return "bg-muted/50 border-border text-muted-foreground"
       default:
-        return "bg-white border-gray-200"
+        return "bg-background border-border"
     }
   }
 
   const getStatusIcon = (subject: Subject) => {
     const status = getSubjectStatus(subject)
-    if (status === "approved") return <CheckCircle2 className="h-4 w-4 text-green-600" />
-    if (status === "available") return <Circle className="h-4 w-4 text-blue-600" />
-    return <Lock className="h-4 w-4 text-gray-400" />
+    if (status === "approved") return <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+    if (status === "available") return <Circle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+    return <Lock className="h-4 w-4 text-muted-foreground" />
   }
 
   const handleSignOut = async () => {
@@ -491,13 +493,13 @@ export default function Dashboard() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-slate-900 dark:to-slate-800 transition-colors duration-300">
         {/* Header con botón de cerrar sesión siempre visible */}
         <div className="p-4">
           <div className="max-w-7xl mx-auto flex justify-between items-center">
             <div className="flex items-center gap-3">
-              <GraduationCap className="h-8 w-8 text-indigo-600" />
-              <h1 className="text-3xl font-bold text-gray-900">Malla Curricular</h1>
+              <GraduationCap className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
+              <h1 className="text-3xl font-bold text-foreground">Malla Curricular</h1>
             </div>
             {user && (
               <Button onClick={handleSignOut} variant="outline">
@@ -511,8 +513,8 @@ export default function Dashboard() {
         {/* Contenido de carga centrado */}
         <div className="flex items-center justify-center min-h-[80vh]">
           <div className="text-center">
-            <GraduationCap className="h-12 w-12 text-indigo-600 mx-auto mb-4 animate-pulse" />
-            <p className="text-gray-600">Cargando...</p>
+            <GraduationCap className="h-12 w-12 text-indigo-600 dark:text-indigo-400 mx-auto mb-4 animate-pulse" />
+            <p className="text-muted-foreground">Cargando...</p>
           </div>
         </div>
       </div>
@@ -521,30 +523,33 @@ export default function Dashboard() {
 
   if (!selectedCurriculum && curriculums.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-slate-900 dark:to-slate-800 transition-colors duration-300 p-4">
         <div className="max-w-4xl mx-auto">
           <div className="flex justify-between items-center mb-8">
             <div className="flex items-center gap-3">
-              <GraduationCap className="h-8 w-8 text-indigo-600" />
-              <h1 className="text-3xl font-bold text-gray-900">Malla Curricular</h1>
+              <GraduationCap className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
+              <h1 className="text-3xl font-bold text-foreground">Malla Curricular</h1>
             </div>
-            <Button onClick={handleSignOut} variant="outline">
-              <LogOut className="h-4 w-4 mr-2" />
-              Cerrar Sesión
-            </Button>
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <Button onClick={handleSignOut} variant="outline">
+                <LogOut className="h-4 w-4 mr-2" />
+                Cerrar Sesión
+              </Button>
+            </div>
           </div>
 
-          <Card className="text-center py-12">
+          <Card className="text-center py-12 border-border/50 bg-card/50 backdrop-blur-sm">
             <CardContent>
-              <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h2 className="text-xl font-semibold mb-2">¡Bienvenido a tu Malla Curricular!</h2>
-              <p className="text-gray-600 mb-6">
+              <BookOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+              <h2 className="text-xl font-semibold mb-2 text-foreground">¡Bienvenido a tu Malla Curricular!</h2>
+              <p className="text-muted-foreground mb-6">
                 Comienza creando tu primer currículo. Podrás agregar años académicos, materias y definir prerequisitos para organizar tu carrera universitaria.
               </p>
 
               <Dialog open={isCreatingCurriculum} onOpenChange={setIsCreatingCurriculum}>
                 <DialogTrigger asChild>
-                  <Button className="bg-indigo-600 hover:bg-indigo-700 mr-4">
+                  <Button className="bg-primary hover:bg-primary/90 mr-4 transition-all duration-300 hover:scale-105">
                     <Plus className="h-4 w-4 mr-2" />
                     Crear Mi Currículo
                   </Button>
@@ -586,7 +591,7 @@ export default function Dashboard() {
               <Button 
                 variant="outline" 
                 onClick={() => router.push("/")}
-                className="text-gray-600 hover:text-gray-800"
+                className="hover:scale-105 transition-transform duration-200"
               >
                 <BookOpen className="h-4 w-4 mr-2" />
                 Ver Ejemplo
@@ -599,40 +604,60 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-slate-900 dark:to-slate-800 transition-colors duration-300 p-4">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center gap-3">
-            <GraduationCap className="h-8 w-8 text-indigo-600" />
+            <GraduationCap className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-3xl font-bold text-gray-900">{selectedCurriculum?.name || "Malla Curricular"}</h1>
+                <h1 className="text-3xl font-bold text-foreground">{selectedCurriculum?.name || "Malla Curricular"}</h1>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={openEditCurriculum}
-                  className="text-gray-500 hover:text-gray-700"
+                  className="hover:scale-105 transition-transform duration-200"
                 >
                   <Edit3 className="h-4 w-4" />
                 </Button>
               </div>
-              {selectedCurriculum?.description && <p className="text-gray-600">{selectedCurriculum.description}</p>}
+              {selectedCurriculum?.description && <p className="text-muted-foreground">{selectedCurriculum.description}</p>}
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button onClick={handleSignOut} variant="outline">
+          <div className="flex gap-2 items-center">
+            <ThemeToggle />
+            <Button onClick={handleSignOut} variant="outline" className="hover:scale-105 transition-transform duration-200">
               <LogOut className="h-4 w-4 mr-2" />
               Cerrar Sesión
             </Button>
           </div>
         </div>
 
+        {/* Estadísticas del Dashboard */}
+        {selectedCurriculum && (() => {
+          const totalSubjects = selectedCurriculum.years.reduce((acc, year) => acc + year.subjects.length, 0)
+          const approvedSubjects = selectedCurriculum.years.reduce((acc, year) => 
+            acc + year.subjects.filter(s => s.approved).length, 0)
+          const availableSubjects = selectedCurriculum.years.reduce((acc, year) => 
+            acc + year.subjects.filter(s => !s.approved && isSubjectAvailable(s)).length, 0)
+          const completionPercentage = totalSubjects > 0 ? (approvedSubjects / totalSubjects) * 100 : 0
+
+          return (
+            <DashboardStats
+              totalSubjects={totalSubjects}
+              approvedSubjects={approvedSubjects}
+              availableSubjects={availableSubjects}
+              completionPercentage={completionPercentage}
+            />
+          )
+        })()}
+
         {/* Controles */}
         <div className="flex gap-4 mb-8 justify-center flex-wrap">
           <Dialog open={isAddingSubject} onOpenChange={setIsAddingSubject}>
             <DialogTrigger asChild>
-              <Button className="bg-indigo-600 hover:bg-indigo-700">
+              <Button className="bg-primary hover:bg-primary/90 transition-all duration-300 hover:scale-105">
                 <Plus className="h-4 w-4 mr-2" />
                 Agregar Materia
               </Button>
@@ -768,8 +793,8 @@ export default function Dashboard() {
         {/* Grilla de Años */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {selectedCurriculum?.years.map((year) => (
-            <Card key={year.id} className="shadow-lg hover:shadow-xl transition-shadow duration-300">
-              <CardHeader className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-t-lg">
+            <Card key={year.id} className="shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] border-border/50 bg-card/50 backdrop-blur-sm">
+              <CardHeader className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground rounded-t-lg">
                 <CardTitle className="text-center text-xl font-bold">{year.name}</CardTitle>
                 <div className="text-center text-sm opacity-90">
                   {year.subjects.filter((s) => s.approved).length} / {year.subjects.length} aprobadas
@@ -796,7 +821,7 @@ export default function Dashboard() {
                               <span className={`font-medium text-sm ${subject.approved ? "line-through" : ""}`}>
                                 {subject.name}
                               </span>
-                              {subject.code && <div className="text-xs text-gray-500">{subject.code}</div>}
+                              {subject.code && <div className="text-xs text-muted-foreground">{subject.code}</div>}
                             </div>
                           </div>
                           <div className="flex gap-1">
@@ -841,14 +866,14 @@ export default function Dashboard() {
                         )}
 
                         {subject.credits && (
-                          <div className="mt-1 text-xs text-gray-500">{subject.credits} créditos</div>
+                          <div className="mt-1 text-xs text-muted-foreground">{subject.credits} créditos</div>
                         )}
                       </div>
                     )
                   })}
 
                   {year.subjects.length === 0 && (
-                    <div className="text-center text-gray-500 py-8">
+                    <div className="text-center text-muted-foreground py-8">
                       <Plus className="h-8 w-8 mx-auto mb-2 opacity-50" />
                       <p className="text-sm">No hay materias en este año</p>
                     </div>
@@ -860,19 +885,19 @@ export default function Dashboard() {
         </div>
 
         {/* Leyenda */}
-        <div className="mt-8 bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-lg font-semibold mb-4 text-center">Leyenda</h3>
+        <div className="mt-8 bg-card border-border/50 backdrop-blur-sm rounded-lg shadow-md p-6">
+          <h3 className="text-lg font-semibold mb-4 text-center text-foreground">Leyenda</h3>
           <div className="flex flex-wrap justify-center gap-6">
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
+              <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
               <span className="text-sm">Materia Aprobada</span>
             </div>
             <div className="flex items-center gap-2">
-              <Circle className="h-4 w-4 text-blue-600" />
+              <Circle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
               <span className="text-sm">Disponible para Cursar</span>
             </div>
             <div className="flex items-center gap-2">
-              <Lock className="h-4 w-4 text-gray-400" />
+              <Lock className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm">Bloqueada (Faltan Correlativas)</span>
             </div>
           </div>
